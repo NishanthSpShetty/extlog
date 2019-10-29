@@ -8,20 +8,22 @@ Simple module to set the custom io writer for `log` package which will write the
 
 ### Usage 
 
-at the start of the application you need to initialize extlog module, which will currently set the writer to our custom writer wrapper written over io.Writer,
-currently internal writer is set to os.Stderr as default value. 
+At the start of the application initialize the extlog module, which will set the logger writer to our custom writer wrapper,
+currently internal writer is set to os.Stderr as default value.
 
 All write to log writer will be written to our custom writer sink which will convert the given log message into json data set and write it to internal writer.
 
 ```
 import "source.golabs.io/nishanth.shetty/extlog"
-
-//either in init() or main() call the below functions
+```
+either in init() or main() call the below functions
+```
 extlog.Init(log.LstdFlags | log.Lshortfile)
 ```
 
 `extlog.Init()` takes logger flags as input argument in order to parse the log written, extlog should be initialized with the `log.Flags()` value
 
+----
 
 ### example
 ```
