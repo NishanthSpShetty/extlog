@@ -1,24 +1,24 @@
 package extlog
 
 import (
-	"os"
-
-	"fmt"
 	"io"
 	"log"
+	"os"
+	"strings"
 )
 
 type LogWriter struct {
 
 	//internal writer to be used by the writer which should be set by the application
 	internal_writer io.Writer
+	Flags           int
 
 	//we need to read the log flags set, but if the extlog initialized before it was set
 	//in application we will end up reading default flags, so we will read from the log itself.
 	//flags int
 }
 
-type Meta struct {
+type Field struct {
 	//meta fields
 	Timestamp string
 	Filename  string
@@ -32,8 +32,9 @@ func getFileLen(text string, flags int) int {
 	*/
 
 	file_len := 0
-	if flags&(log.Lshortfile|log.Llongfile) != 0 {
-		//file name present
+
+	if flags&(log.Lshortfile|log.Llongfile) == 0 {
+		//file name is not present
 		return file_len
 
 	}
@@ -49,15 +50,16 @@ func getFileLen(text string, flags int) int {
 			found = true
 			break
 		}
+		prev_char = curr_char
 	}
 
 	if !found {
 		//no file information were sent ?
-		return file_len
+		return 0
 	}
 
-	//+1 to remove the tailing space
-	return file_len + index + 1
+	//-1 to remove the tailing :SPACE"
+	return file_len + index - 1
 }
 
 func getTimestampLen(flags int) int {
@@ -67,7 +69,7 @@ func getTimestampLen(flags int) int {
 	 Ldate|Ltime|Lmicroseconds
 		-- Ldate (8)+SPACE +2'\'
 		-- Ltime (6)+SPACE +2'.'
-		-- Lmicorseconds 1'.'+(6)
+		-- Lmicroseconds 1'.'+(6)
 	*/
 
 	timestamp_len := 0
@@ -79,73 +81,80 @@ func getTimestampLen(flags int) int {
 		timestamp_len = timestamp_len + 9
 	}
 
-	if flags&(log.Lmicorseconds) != 0 {
+	if flags&(log.Lmicroseconds) != 0 {
 		timestamp_len = timestamp_len + 7
 	}
 
 	return timestamp_len
 }
 
-//extractLogMeta extract the log meta data details from the text
-func extractLogMeta(data []byte, flags int) Meta {
+//extractLogField extract the log meta data details from the text
+func extractLogField(data []byte, flags int) Field {
 
 	//timestamp field
 	timestamp_len := getTimestampLen(flags)
 
-	//skip the tailing space ?
-
 	text := string(data)
 
-	timestamp := text[:timestamp_len]
+	//skip the tailing space ?
+	timestamp := text[:timestamp_len-1]
 
-	filename_start := (timestamp_len)
+	file_name_end := timestamp_len
 
-	filename_len := getFileLen(text[filename_start:], flags)
+	filename := ""
+	//extract the filename and line number
+	if flags&(log.Lshortfile|log.Llongfile) != 0 {
+		filename_start := (timestamp_len)
 
-	fine_name_end = filename_index + filename_len
+		filename_len := getFileLen(text[filename_start:], flags)
 
-	filename = text[filename_start:file_name_end]
+		file_name_end = filename_start + filename_len
 
-	return Meta{Timestamp: timestamp, Filename: filename, MessageIndex: file_name_end}
+		filename = text[filename_start:file_name_end]
+
+		//increase the index to remove :SPACE
+		file_name_end = file_name_end + 2
+	}
+
+	//get the log message
+
+	//trim the last new lone char if present
+	lastCharIndex := len(text)
+	msg := text[file_name_end:lastCharIndex]
+	return Field{Timestamp: timestamp, Filename: filename, Message: msg}
+}
+
+func escapeSpecialChar(text string) string {
+	return strings.Replace(text, "\"", "\\\"", -1)
+
+}
+
+func toJson(field *Field) string {
+	return `{"timestamp": "` + field.Timestamp + `", "file": "` + field.Filename + `", "message": "` + escapeSpecialChar(field.Message) + `"}`
 }
 
 func (logWriter LogWriter) Write(data []byte) (n int, err error) {
-	//write the given chunk of data to the writer sink
-	//now we will write to std
-
-	fmt.Println("Recived data on LogWriter..")
-
-	//convert the text into json dataset
 
 	//extract log meta content from the data
-	extractLogMeta(data, log.Flags())
+	field := extractLogField(data, logWriter.Flags)
 
-	n, err = logWriter.internal_writer.Write(data)
+	text := toJson(&field)
 
-	fmt.Println("EndOfLogWriter")
+	//dump the bytes fom text
+	n, err = logWriter.internal_writer.Write([]byte(text + "\n"))
 
 	return
 }
 
-type LogMeta struct {
-}
-
-var logMeta = LogMeta{}
-
 //SetupLogger setup standard logger with our custom logging properties
-func SetupLogger(writer io.Writer) {
+func SetupLogger(writer io.Writer, flags int) {
 
-	log.SetOutput(LogWriter{internal_writer: writer})
-	logMeta.flags = log.Flags()
+	log.SetOutput(LogWriter{internal_writer: writer, Flags: flags})
 
 }
 
 //Init should  change this func signature.
-func Init() bool {
-	SetupLogger(os.Stderr)
+func Init(flags int) bool {
+	SetupLogger(os.Stderr, flags)
 	return true
-}
-
-func GetLogMeta() LogMeta {
-	return logMeta
 }
