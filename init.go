@@ -18,6 +18,7 @@ type LogWriter struct {
 	//flags int
 }
 
+// Field represent the log fields
 type Field struct {
 	//meta fields
 	Timestamp string
@@ -118,8 +119,13 @@ func extractLogField(data []byte, flags int) Field {
 
 	//get the log message
 
-	//trim the last new lone char if present
+	//trim the last new line char added by logger
 	lastCharIndex := len(text)
+
+	newline := '\n'
+	if rune(text[lastCharIndex-1]) == newline {
+		lastCharIndex = lastCharIndex - 1
+	}
 	msg := text[file_name_end:lastCharIndex]
 	return Field{Timestamp: timestamp, Filename: filename, Message: msg}
 }
@@ -129,7 +135,7 @@ func escapeSpecialChar(text string) string {
 
 }
 
-func toJson(field *Field) string {
+func toJSON(field *Field) string {
 	return `{"timestamp": "` + field.Timestamp + `", "file": "` + field.Filename + `", "message": "` + escapeSpecialChar(field.Message) + `"}`
 }
 
@@ -138,7 +144,7 @@ func (logWriter LogWriter) Write(data []byte) (n int, err error) {
 	//extract log meta content from the data
 	field := extractLogField(data, logWriter.Flags)
 
-	text := toJson(&field)
+	text := toJSON(&field)
 
 	//dump the bytes fom text
 	n, err = logWriter.internal_writer.Write([]byte(text + "\n"))
