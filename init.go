@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+//LogWriter log writer wrapper over io.Writer
 type LogWriter struct {
 
 	//internal writer to be used by the writer which should be set by the application
@@ -131,6 +132,7 @@ func extractLogField(data []byte, flags int) Field {
 }
 
 func escapeSpecialChar(text string) string {
+	text = strings.Replace(text, "\\", "\\\\", -1)
 	return strings.Replace(text, "\"", "\\\"", -1)
 
 }

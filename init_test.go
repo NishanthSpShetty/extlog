@@ -127,13 +127,13 @@ func TestExtractLogFieldWithQuotes(t *testing.T) {
 }
 
 func TesttoJson(t *testing.T) {
-	text := `2019/10/29 16:45:33 /Users/nishanth/projects/programs/golang/golog/main.go:15: Connected to database {user :\"Alex\"}`
+	text := `2019/10/29 16:45:33 /Users/nishanth/projects/programs/golang/golog/main.go:15: Connected to database {user :\"Alex\"} \ and a slash`
 
 	field := extractLogField([]byte(text), log.LstdFlags|log.Lshortfile)
 
 	json := toJSON(&field)
 
-	expected := `{"timestamp": "2019/10/29 16:45:33", "file": "/Users/nishanth/projects/programs/golang/golog/main.go:15", "message": "Connected to database {user :\\"Alex\\"}"}`
+	expected := `{"timestamp": "2019/10/29 16:45:33", "file": "/Users/nishanth/projects/programs/golang/golog/main.go:15", "message": "Connected to database {user :\\"Alex\\"}" \\ and a slash}`
 
 	if expected != json {
 
