@@ -12,6 +12,7 @@ type LogWriter struct {
 
 	//internal writer to be used by the writer which should be set by the application
 	internal_writer io.Writer
+	ServiceName     string
 	Flags           int
 
 	//we need to read the log flags set, but if the extlog initialized before it was set
@@ -134,11 +135,10 @@ func extractLogField(data []byte, flags int) Field {
 func escapeSpecialChar(text string) string {
 	text = strings.Replace(text, "\\", "\\\\", -1)
 	return strings.Replace(text, "\"", "\\\"", -1)
-
 }
 
-func toJSON(field *Field) string {
-	return `{"timestamp": "` + field.Timestamp + `", "file": "` + field.Filename + `", "message": "` + escapeSpecialChar(field.Message) + `"}`
+func toJSON(serviceName string, field *Field) string {
+	return `{"service_name": "` + serviceName + `", "timestamp": "` + field.Timestamp + `", "file": "` + field.Filename + `", "message": "` + escapeSpecialChar(field.Message) + `"}`
 }
 
 func (logWriter LogWriter) Write(data []byte) (n int, err error) {
@@ -146,7 +146,7 @@ func (logWriter LogWriter) Write(data []byte) (n int, err error) {
 	//extract log meta content from the data
 	field := extractLogField(data, logWriter.Flags)
 
-	text := toJSON(&field)
+	text := toJSON(logWriter.ServiceName, &field)
 
 	//dump the bytes fom text
 	n, err = logWriter.internal_writer.Write([]byte(text + "\n"))
@@ -155,14 +155,14 @@ func (logWriter LogWriter) Write(data []byte) (n int, err error) {
 }
 
 //SetupLogger setup standard logger with our custom logging properties
-func SetupLogger(writer io.Writer, flags int) {
+func SetupLogger(writer io.Writer, serviceName string, flags int) {
 
-	log.SetOutput(LogWriter{internal_writer: writer, Flags: flags})
+	log.SetOutput(LogWriter{internal_writer: writer, ServiceName: serviceName, Flags: flags})
 
 }
 
 //Init should  change this func signature.
-func Init(flags int) bool {
-	SetupLogger(os.Stderr, flags)
+func Init(serviceName string, flags int) bool {
+	SetupLogger(os.Stderr, serviceName, flags)
 	return true
 }
