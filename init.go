@@ -161,7 +161,7 @@ func SetupLogger(writer io.Writer, serviceName string, flags int) {
 
 }
 
-//Init should  change this func signature.
+//Init initialize the logger using stderr as a output file
 func Init(serviceName string, flags int) bool {
 	SetupLogger(os.Stderr, serviceName, flags)
 	return true
