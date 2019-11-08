@@ -1,22 +1,23 @@
 ## extlog
 
-	log extension module to support structured logging over a golang standard library for existing services.
+Log extension module to reformat text logs emitted by Go `log` module as structured JSON logs.
+
+This library transparently converts the log format, hence you may not need to change existing code that uses the `log` module.
 
 
 
-Simple module to set the custom io writer for `log` package which will write the log message and its meta data in the JSON format without changing any existing application codebase.
 
 ### Usage 
 
-At the start of the application initialize the extlog module, which will set the logger writer to our custom writer wrapper,
-currently internal writer is set to os.Stderr as default value.
+At the start of the application initialize the extlog module, which sets up the logger writer to a custom writer wrapper (os.Stderr by default.)
 
-All write to log writer will be written to our custom writer sink which will convert the given log message into json data set and write it to internal writer.
 
 ```
 import "source.golabs.io/nishanth.shetty/extlog"
 ```
+
 either in init() or main() call the below functions
+
 ```
 extlog.Init(log.LstdFlags | log.Lshortfile)
 ```
