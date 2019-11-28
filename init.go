@@ -133,7 +133,9 @@ func extractLogField(data []byte, flags int) Field {
 }
 
 func escapeSpecialChar(text string) string {
+	//escape the escape('\') character before escaping any other character
 	text = strings.Replace(text, "\\", "\\\\", -1)
+	//escape double quote and return the string for now
 	return strings.Replace(text, "\"", "\\\"", -1)
 }
 
